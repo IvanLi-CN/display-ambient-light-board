@@ -255,14 +255,10 @@ static void breathing_timer_callback(TimerHandle_t xTimer)
     size_t max_leds = g_buffer_size / actual_channels;
 
     if (g_mixed_mode) {
-        // Mixed mode: Only update first LED (status indicator)
-        if (max_leds > 0) {
-          uint8_t r = (uint8_t)(g_breathing.status_r * brightness_factor);
-          uint8_t g = (uint8_t)(g_breathing.status_g * brightness_factor);
-          uint8_t b = (uint8_t)(g_breathing.status_b * brightness_factor);
-          uint8_t w = (uint8_t)(g_breathing.status_w * brightness_factor);
-          set_led_color(g_led_buffer, 0, r, g, b, w);
-        }
+      // Mixed mode: Don't update any LEDs, let ambient data control all LEDs
+      // The breathing effect is disabled in mixed mode to allow full ambient
+      // control
+      return;
     } else {
         // Full breathing mode: Update ALL LEDs
         for (size_t led_idx = 0; led_idx < max_leds; led_idx++) {
@@ -400,27 +396,31 @@ esp_err_t led_driver_update_buffer(uint16_t offset, const uint8_t* data, size_t 
     if (!g_initialized || !g_led_buffer) {
         return ESP_ERR_INVALID_STATE;
     }
-    
+
     if (!data || len == 0) {
         return ESP_ERR_INVALID_ARG;
     }
-    
+
     // Calculate byte offset
     int actual_channels = get_led_channels_count();
     size_t byte_offset = offset * actual_channels;
 
     // Check bounds
     if (byte_offset + len > g_buffer_size) {
-        ESP_LOGW(TAG, "LED data exceeds buffer: offset=%d, len=%d, buffer_size=%d", 
-                 byte_offset, len, g_buffer_size);
-        len = g_buffer_size - byte_offset;
+      ESP_LOGW(TAG,
+               "LED data exceeds buffer: offset=%d, len=%d, buffer_size=%d",
+               byte_offset, len, g_buffer_size);
+      len = g_buffer_size - byte_offset;
     }
-    
+
     if (len > 0) {
-        memcpy(g_led_buffer + byte_offset, data, len);
-        ESP_LOGD(TAG, "Updated LED buffer: offset=%d, len=%" PRIu32, offset, (uint32_t)len);
+      // In mixed mode, all LEDs including the first one should display ambient
+      // data
+      memcpy(g_led_buffer + byte_offset, data, len);
+      ESP_LOGD(TAG, "Updated LED buffer: offset=%d, len=%" PRIu32, offset,
+               (uint32_t)len);
     }
-    
+
     return ESP_OK;
 }
 
