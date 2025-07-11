@@ -1,0 +1,119 @@
+menu "Ambient Light Board Configuration"
+
+    config WIFI_SSID
+        string "WiFi SSID"
+        default "myssid"
+        help
+            SSID (network name) for the ambient light board to connect to.
+
+    config WIFI_PASSWORD
+        string "WiFi Password"
+        default "mypassword"
+        help
+            WiFi password (WPA or WPA2) for the ambient light board to use.
+            Can be left blank if the network has no security set.
+
+    config WIFI_MAXIMUM_RETRY
+        int "Maximum retry attempts"
+        default 5
+        range 1 20
+        help
+            Set the maximum number of retry attempts for WiFi connection.
+
+    config LED_DATA_PIN
+        int "LED Data GPIO Pin"
+        default 4
+        range 0 21
+        help
+            GPIO pin number for LED data output (ESP32-C3 has GPIO 0-21).
+
+    config MAX_LED_COUNT
+        int "Maximum LED Count"
+        default 500
+        range 1 1000
+        help
+            Maximum number of LEDs supported by the board.
+
+    config UDP_PORT
+        int "UDP Server Port"
+        default 23042
+        range 1024 65535
+        help
+            UDP port number for receiving LED data packets.
+
+    config MDNS_HOSTNAME
+        string "mDNS Hostname"
+        default "board-rs"
+        help
+            Hostname for mDNS service discovery (will be accessible as hostname.local).
+
+    config LED_REFRESH_RATE_FPS
+        int "LED Refresh Rate (FPS)"
+        default 30
+        range 10 60
+        help
+            LED refresh rate in frames per second.
+
+    config ENABLE_BREATHING_EFFECT
+        bool "Enable breathing effect for all LEDs"
+        default y
+        help
+            Enable breathing effect for all LEDs with status indicator on first LED.
+
+    config BREATHING_BASE_RED
+        int "Base breathing color - Red component"
+        default 20
+        range 0 255
+        depends on ENABLE_BREATHING_EFFECT
+        help
+            Red component of base breathing color for all LEDs except status LED.
+
+    config BREATHING_BASE_GREEN
+        int "Base breathing color - Green component"
+        default 20
+        range 0 255
+        depends on ENABLE_BREATHING_EFFECT
+        help
+            Green component of base breathing color for all LEDs except status LED.
+
+    config BREATHING_BASE_BLUE
+        int "Base breathing color - Blue component"
+        default 50
+        range 0 255
+        depends on ENABLE_BREATHING_EFFECT
+        help
+            Blue component of base breathing color for all LEDs except status LED.
+
+    config BREATHING_BASE_WHITE
+        int "Base breathing color - White component"
+        default 0
+        range 0 255
+        depends on ENABLE_BREATHING_EFFECT
+        help
+            White component of base breathing color for all LEDs except status LED.
+
+    config DEBUG_ENABLE_WIFI
+        bool "Enable WiFi debug logging"
+        default n
+        help
+            Enable detailed WiFi debug logging.
+
+    config DEBUG_ENABLE_UDP
+        bool "Enable UDP debug logging"
+        default n
+        help
+            Enable detailed UDP debug logging.
+
+    config DEBUG_ENABLE_LED
+        bool "Enable LED debug logging"
+        default n
+        help
+            Enable detailed LED debug logging.
+
+    config DEBUG_ENABLE_STATE
+        bool "Enable state machine debug logging"
+        default n
+        help
+            Enable detailed state machine debug logging.
+
+endmenu
