@@ -1,0 +1,109 @@
+name: Development Release
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  dev-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: 'recursive'
+        fetch-depth: 0
+    
+    - name: Setup ESP-IDF
+      uses: espressif/esp-idf-ci-action@v1
+      with:
+        esp_idf_version: v5.1.2
+        target: esp32c3
+    
+    - name: Build project
+      run: |
+        . $IDF_PATH/export.sh
+        idf.py build
+    
+    - name: Generate development version
+      id: dev_version
+      run: |
+        # 生成开发版本号：dev-YYYYMMDD-HHMMSS-短commit哈希
+        DEV_VERSION="dev-$(date +'%Y%m%d-%H%M%S')-$(git rev-parse --short HEAD)"
+        echo "version=$DEV_VERSION" >> $GITHUB_OUTPUT
+        echo "Development version: $DEV_VERSION"
+    
+    - name: Create development release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.dev_version.outputs.version }}
+        name: "Development Build ${{ steps.dev_version.outputs.version }}"
+        body: |
+          🚧 **开发版本构建**
+          
+          **提交信息:** ${{ github.event.head_commit.message }}
+          **提交哈希:** ${{ github.sha }}
+          **构建时间:** $(date +'%Y-%m-%d %H:%M:%S UTC')
+          
+          ⚠️ 这是一个自动生成的开发版本，仅用于测试目的。
+          
+          ## 文件说明
+          - `display-ambient-light-board.bin` - 主固件文件（模板版本，需要配置）
+          - `display-ambient-light-board.elf` - 调试符号文件
+          - `display-ambient-light-board.map` - 内存映射文件
+          - `firmware-config-tool.html` - 固件配置工具
+
+          ## 如何配置固件
+          1. 下载 `firmware-config-tool.html` 配置工具
+          2. 在浏览器中打开配置工具
+          3. 上传 `display-ambient-light-board.bin` 固件文件
+          4. 填写你的 WiFi SSID 和密码等配置
+          5. 点击"下载配置后的固件"获得个性化固件
+        files: |
+          build/display-ambient-light-board.bin
+          build/display-ambient-light-board.elf
+          build/display-ambient-light-board.map
+          tools/firmware-config-tool.html
+        prerelease: true
+        draft: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Clean up old development releases
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { data: releases } = await github.rest.repos.listReleases({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+          });
+          
+          // 保留最新的10个开发版本，删除更老的
+          const devReleases = releases
+            .filter(release => release.tag_name.startsWith('dev-'))
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+          
+          if (devReleases.length > 10) {
+            const releasesToDelete = devReleases.slice(10);
+            
+            for (const release of releasesToDelete) {
+              console.log(`Deleting old dev release: ${release.tag_name}`);
+              await github.rest.repos.deleteRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: release.id,
+              });
+              
+              // 同时删除对应的标签
+              try {
+                await github.rest.git.deleteRef({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  ref: `tags/${release.tag_name}`,
+                });
+              } catch (error) {
+                console.log(`Failed to delete tag ${release.tag_name}: ${error.message}`);
+              }
+            }
+          }

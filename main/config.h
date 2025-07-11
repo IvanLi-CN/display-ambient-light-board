@@ -1,9 +1,62 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include "esp_system.h"
+#include <stdbool.h>
+#include <stdint.h>
+
 #include "driver/gpio.h"
+#include "esp_system.h"
 #include "sdkconfig.h"
+
+// Firmware configuration magic numbers and constants
+#define FIRMWARE_CONFIG_MAGIC 0x12345678
+#define FIRMWARE_CONFIG_VERSION 1
+#define FIRMWARE_CONFIG_SIZE 256
+#define FIRMWARE_CONFIG_MARKER "FWCFG_START"
+#define FIRMWARE_CONFIG_MARKER_END "FWCFG_END"
+
+// Configuration structure (exactly 256 bytes)
+typedef struct {
+  uint32_t magic;                      // Magic number for validation
+  uint32_t version;                    // Configuration version
+  char wifi_ssid[64];                  // WiFi SSID
+  char wifi_password[64];              // WiFi password
+  uint16_t udp_port;                   // UDP server port
+  char mdns_hostname[32];              // mDNS hostname
+  uint8_t led_pin;                     // LED data GPIO pin
+  uint16_t max_leds;                   // Maximum LED count
+  char led_order[8];                   // LED color order (RGB, RGBW, etc.)
+  uint8_t led_refresh_rate;            // LED refresh rate in FPS
+  uint8_t breathing_enabled;           // Breathing effect enabled
+  uint8_t breathing_base_r;            // Breathing base color R
+  uint8_t breathing_base_g;            // Breathing base color G
+  uint8_t breathing_base_b;            // Breathing base color B
+  uint8_t breathing_base_w;            // Breathing base color W
+  uint8_t breathing_min_brightness;    // Breathing minimum brightness
+  uint8_t breathing_max_brightness;    // Breathing maximum brightness
+  uint8_t breathing_step_size;         // Breathing step size
+  uint16_t breathing_timer_period_ms;  // Breathing timer period
+  uint8_t reserved[48];                // Reserved for future use
+  uint32_t checksum;                   // CRC32 checksum
+} __attribute__((packed)) firmware_config_t;
+
+// Global configuration instance
+extern firmware_config_t g_firmware_config;
+extern bool g_config_loaded;
+
+// Configuration management functions
+esp_err_t config_init(void);
+esp_err_t config_load_from_firmware(void);
+bool config_is_valid(const firmware_config_t* config);
+uint32_t config_calculate_checksum(const firmware_config_t* config);
+void config_set_defaults(firmware_config_t* config);
+const char* config_get_wifi_ssid(void);
+const char* config_get_wifi_password(void);
+uint16_t config_get_udp_port(void);
+const char* config_get_mdns_hostname(void);
+uint8_t config_get_led_pin(void);
+uint16_t config_get_max_leds(void);
+const char* config_get_led_order(void);
 
 // Hardware Configuration - use sdkconfig values
 #define LED_DATA_PIN            (gpio_num_t)CONFIG_LED_DATA_PIN

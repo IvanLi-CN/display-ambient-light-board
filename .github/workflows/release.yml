@@ -1,0 +1,144 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: '版本类型'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+        - patch
+        - minor
+        - major
+      prerelease:
+        description: '是否为预发布版本'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: 'recursive'
+        fetch-depth: 0
+    
+    - name: Generate semantic version
+      id: version
+      uses: paulhatch/semantic-version@v5.4.0
+      with:
+        tag_prefix: "v"
+        major_pattern: "BREAKING CHANGE:"
+        minor_pattern: "feat:"
+        version_format: "${major}.${minor}.${patch}"
+        bump_each_commit: false
+        search_commit_body: true
+        user_format_type: "csv"
+        enable_prerelease_mode: ${{ github.event.inputs.prerelease }}
+        debug: false
+    
+    - name: Override version type if specified
+      id: final_version
+      run: |
+        if [ "${{ github.event.inputs.version_type }}" = "major" ]; then
+          VERSION="${{ steps.version.outputs.major_version }}"
+        elif [ "${{ github.event.inputs.version_type }}" = "minor" ]; then
+          VERSION="${{ steps.version.outputs.minor_version }}"
+        else
+          VERSION="${{ steps.version.outputs.version }}"
+        fi
+        
+        if [ "${{ github.event.inputs.prerelease }}" = "true" ]; then
+          VERSION="${VERSION}-rc.$(date +'%Y%m%d%H%M%S')"
+        fi
+        
+        echo "version=v$VERSION" >> $GITHUB_OUTPUT
+        echo "Final version: v$VERSION"
+    
+    - name: Setup ESP-IDF
+      uses: espressif/esp-idf-ci-action@v1
+      with:
+        esp_idf_version: v5.1.2
+        target: esp32c3
+    
+    - name: Build project
+      run: |
+        . $IDF_PATH/export.sh
+        idf.py build
+    
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # 获取上一个发布标签
+        LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+        
+        if [ -z "$LAST_TAG" ]; then
+          echo "## 更新内容" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "首次发布" >> CHANGELOG.md
+        else
+          echo "## 更新内容" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          
+          # 生成提交日志
+          git log --pretty=format:"- %s (%h)" $LAST_TAG..HEAD >> CHANGELOG.md
+          
+          if [ ! -s CHANGELOG.md ] || [ "$(wc -l < CHANGELOG.md)" -le 2 ]; then
+            echo "- 代码优化和错误修复" >> CHANGELOG.md
+          fi
+        fi
+        
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        cat CHANGELOG.md >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+    
+    - name: Create release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.final_version.outputs.version }}
+        name: "Release ${{ steps.final_version.outputs.version }}"
+        body: |
+          🎉 **正式版本发布**
+          
+          ${{ steps.changelog.outputs.changelog }}
+          
+          ## 构建信息
+          - **构建时间:** $(date +'%Y-%m-%d %H:%M:%S UTC')
+          - **提交哈希:** ${{ github.sha }}
+          - **ESP-IDF 版本:** v5.1.2
+          - **目标芯片:** ESP32-C3
+          
+          ## 文件说明
+          - `display-ambient-light-board.bin` - 主固件文件（模板版本，需要配置后烧录）
+          - `display-ambient-light-board.elf` - 调试符号文件
+          - `display-ambient-light-board.map` - 内存映射文件
+          - `firmware-config-tool.html` - 固件配置工具
+
+          ## 配置和烧录方法
+
+          ### 1. 配置固件
+          1. 下载 `firmware-config-tool.html` 配置工具
+          2. 在浏览器中打开配置工具
+          3. 上传 `display-ambient-light-board.bin` 固件文件
+          4. 填写你的 WiFi SSID 和密码等配置
+          5. 点击"下载配置后的固件"获得个性化固件
+
+          ### 2. 烧录固件
+          ```bash
+          esptool.py --chip esp32c3 --port /dev/ttyUSB0 --baud 460800 write_flash 0x0 display-ambient-light-board-configured.bin
+          ```
+        files: |
+          build/display-ambient-light-board.bin
+          build/display-ambient-light-board.elf
+          build/display-ambient-light-board.map
+          tools/firmware-config-tool.html
+        prerelease: ${{ github.event.inputs.prerelease }}
+        draft: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

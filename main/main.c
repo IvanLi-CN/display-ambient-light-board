@@ -320,7 +320,7 @@ static esp_err_t init_system_modules(void)
     }
 
     // Initialize UDP server
-    ret = udp_server_init(UDP_PORT);
+    ret = udp_server_init(config_get_udp_port());
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize UDP server: %s", esp_err_to_name(ret));
         return ret;
@@ -330,10 +330,17 @@ static esp_err_t init_system_modules(void)
     udp_server_register_led_callback(led_data_callback);
 
     // Initialize LED driver
-    ret = led_driver_init(LED_DATA_PIN);
+    ret = led_driver_init((gpio_num_t)config_get_led_pin());
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize LED driver: %s", esp_err_to_name(ret));
         return ret;
+    }
+
+    // Set LED count from configuration
+    ret = led_driver_set_led_count(config_get_max_leds());
+    if (ret != ESP_OK) {
+      ESP_LOGE(TAG, "Failed to set LED count: %s", esp_err_to_name(ret));
+      return ret;
     }
 
     // Create LED data timeout timer
@@ -359,6 +366,10 @@ void app_main(void)
     ESP_ERROR_CHECK(init_nvs());
     ESP_LOGI(TAG, "NVS initialized");
 
+    // Initialize configuration manager
+    ESP_ERROR_CHECK(config_init());
+    ESP_LOGI(TAG, "Configuration manager initialized");
+
     // Initialize GPIO
     ESP_ERROR_CHECK(init_gpio());
 
@@ -378,8 +389,8 @@ void app_main(void)
     state_machine_handle_event(EVENT_SYSTEM_INIT_COMPLETE);
 
     // Connect to WiFi using configured credentials
-    ESP_LOGI(TAG, "Connecting to WiFi SSID: %s", CONFIG_WIFI_SSID);
-    wifi_manager_connect(CONFIG_WIFI_SSID, CONFIG_WIFI_PASSWORD);
+    ESP_LOGI(TAG, "Connecting to WiFi SSID: %s", config_get_wifi_ssid());
+    wifi_manager_connect(config_get_wifi_ssid(), config_get_wifi_password());
 
     ESP_LOGI(TAG, "System initialization complete");
 

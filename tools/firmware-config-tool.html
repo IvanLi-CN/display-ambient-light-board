@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>环境光板固件配置工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 25px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #555;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        input[type="text"], input[type="number"], input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .upload-area {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: border-color 0.3s;
+        }
+        .upload-area.dragover {
+            border-color: #007bff;
+            background-color: #f0f8ff;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .current-config {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌈 环境光板固件配置工具</h1>
+        
+        <div class="section">
+            <h3>📁 上传固件文件</h3>
+            <div class="upload-area" id="uploadArea">
+                <p>拖拽 .bin 固件文件到此处，或点击选择文件</p>
+                <input type="file" id="firmwareFile" accept=".bin" style="display: none;">
+                <button onclick="document.getElementById('firmwareFile').click()">选择固件文件</button>
+            </div>
+            <div id="fileStatus"></div>
+        </div>
+
+        <div class="section" id="configSection" style="display: none;">
+            <h3>📊 当前配置</h3>
+            <div class="current-config" id="currentConfig">
+                未加载配置
+            </div>
+        </div>
+
+        <div class="section" id="editSection" style="display: none;">
+            <h3>⚙️ WiFi 配置</h3>
+            <div class="form-group">
+                <label for="wifiSsid">WiFi SSID:</label>
+                <input type="text" id="wifiSsid" maxlength="63" placeholder="输入 WiFi 网络名称">
+                <div class="help-text">WiFi 网络名称，最多 63 个字符</div>
+            </div>
+            <div class="form-group">
+                <label for="wifiPassword">WiFi 密码:</label>
+                <input type="text" id="wifiPassword" maxlength="63" placeholder="输入 WiFi 密码">
+                <div class="help-text">WiFi 密码，最多 63 个字符</div>
+            </div>
+
+            <h3>🌐 网络配置</h3>
+            <div class="form-group">
+                <label for="udpPort">UDP 端口:</label>
+                <input type="number" id="udpPort" min="1024" max="65535" value="23042">
+                <div class="help-text">UDP 服务器端口，范围 1024-65535</div>
+            </div>
+            <div class="form-group">
+                <label for="mdnsHostname">mDNS 主机名:</label>
+                <input type="text" id="mdnsHostname" maxlength="31" placeholder="board-rs">
+                <div class="help-text">设备在网络中的主机名，访问地址为 hostname.local</div>
+            </div>
+
+            <h3>💡 LED 配置</h3>
+            <div class="form-group">
+                <label for="ledPin">LED 数据引脚:</label>
+                <input type="number" id="ledPin" min="0" max="21" value="4">
+                <div class="help-text">ESP32-C3 GPIO 引脚号，范围 0-21</div>
+            </div>
+            <div class="form-group">
+                <label for="maxLeds">最大 LED 数量:</label>
+                <input type="number" id="maxLeds" min="1" max="1000" value="500">
+                <div class="help-text">支持的最大 LED 数量</div>
+            </div>
+            <div class="form-group">
+                <label for="ledOrder">LED 颜色顺序:</label>
+                <input type="text" id="ledOrder" maxlength="7" placeholder="RGBW" value="RGBW">
+                <div class="help-text">LED 颜色通道顺序，如 RGB、GRB、RGBW 等</div>
+            </div>
+
+            <h3>✨ 呼吸效果配置</h3>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="breathingEnabled" checked>
+                    启用呼吸效果
+                </label>
+            </div>
+            <div class="form-group">
+                <label for="breathingBaseR">基础颜色 - 红色 (0-255):</label>
+                <input type="number" id="breathingBaseR" min="0" max="255" value="20">
+            </div>
+            <div class="form-group">
+                <label for="breathingBaseG">基础颜色 - 绿色 (0-255):</label>
+                <input type="number" id="breathingBaseG" min="0" max="255" value="20">
+            </div>
+            <div class="form-group">
+                <label for="breathingBaseB">基础颜色 - 蓝色 (0-255):</label>
+                <input type="number" id="breathingBaseB" min="0" max="255" value="50">
+            </div>
+            <div class="form-group">
+                <label for="breathingBaseW">基础颜色 - 白色 (0-255):</label>
+                <input type="number" id="breathingBaseW" min="0" max="255" value="0">
+            </div>
+        </div>
+
+        <div class="section" id="actionSection" style="display: none;">
+            <button onclick="updateFirmware()">🔄 更新配置</button>
+            <button onclick="downloadFirmware()" id="downloadBtn" disabled>📥 下载配置后的固件</button>
+            <button onclick="resetForm()">🔄 重置表单</button>
+        </div>
+
+        <div id="statusMessages"></div>
+    </div>
+
+    <script>
+        let firmwareData = null;
+        let configOffset = -1;
+        const MAGIC_NUMBER = 0x12345678;
+        const CONFIG_VERSION = 1;
+        const CONFIG_SIZE = 256;
+        const CONFIG_MARKER = "FWCFG_START";
+
+        // 文件上传处理
+        document.getElementById('firmwareFile').addEventListener('change', handleFileSelect);
+        
+        const uploadArea = document.getElementById('uploadArea');
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            if (!file.name.endsWith('.bin')) {
+                showStatus('请选择 .bin 格式的固件文件', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                firmwareData = new Uint8Array(e.target.result);
+                showStatus(`固件文件已加载: ${file.name} (${firmwareData.length} 字节)`, 'success');
+                
+                if (findAndParseConfig()) {
+                    document.getElementById('configSection').style.display = 'block';
+                    document.getElementById('editSection').style.display = 'block';
+                    document.getElementById('actionSection').style.display = 'block';
+                } else {
+                    showStatus('未找到配置区域，这可能不是支持配置的固件文件', 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function findAndParseConfig() {
+            // 查找配置标记
+            const markerBytes = new TextEncoder().encode(CONFIG_MARKER);
+            
+            for (let i = 0; i <= firmwareData.length - markerBytes.length; i++) {
+                let found = true;
+                for (let j = 0; j < markerBytes.length; j++) {
+                    if (firmwareData[i + j] !== markerBytes[j]) {
+                        found = false;
+                        break;
+                    }
+                }
+                
+                if (found) {
+                    configOffset = i + markerBytes.length;
+                    return parseConfig();
+                }
+            }
+            
+            return false;
+        }
+
+        function parseConfig() {
+            if (configOffset < 0 || configOffset + CONFIG_SIZE > firmwareData.length) {
+                return false;
+            }
+
+            const view = new DataView(firmwareData.buffer, configOffset, CONFIG_SIZE);
+            
+            // 读取并验证魔数
+            const magic = view.getUint32(0, true); // little endian
+            if (magic !== MAGIC_NUMBER) {
+                showStatus(`配置魔数不匹配: 0x${magic.toString(16)} (期望: 0x${MAGIC_NUMBER.toString(16)})`, 'error');
+                return false;
+            }
+
+            // 读取版本
+            const version = view.getUint32(4, true);
+            if (version !== CONFIG_VERSION) {
+                showStatus(`配置版本不支持: ${version} (期望: ${CONFIG_VERSION})`, 'error');
+                return false;
+            }
+
+            // 读取配置数据
+            const config = {
+                magic: magic,
+                version: version,
+                wifiSsid: readString(view, 8, 64),
+                wifiPassword: readString(view, 72, 64),
+                udpPort: view.getUint16(136, true),
+                mdnsHostname: readString(view, 138, 32),
+                ledPin: view.getUint8(170),
+                maxLeds: view.getUint16(171, true),
+                ledOrder: readString(view, 173, 8),
+                ledRefreshRate: view.getUint8(181),
+                breathingEnabled: view.getUint8(182) !== 0,
+                breathingBaseR: view.getUint8(183),
+                breathingBaseG: view.getUint8(184),
+                breathingBaseB: view.getUint8(185),
+                breathingBaseW: view.getUint8(186),
+                breathingMinBrightness: view.getUint8(187),
+                breathingMaxBrightness: view.getUint8(188),
+                breathingStepSize: view.getUint8(189),
+                breathingTimerPeriodMs: view.getUint16(190, true)
+            };
+
+            // 显示当前配置
+            displayCurrentConfig(config);
+            
+            // 填充表单
+            fillForm(config);
+            
+            return true;
+        }
+
+        function readString(view, offset, maxLength) {
+            const bytes = [];
+            for (let i = 0; i < maxLength; i++) {
+                const byte = view.getUint8(offset + i);
+                if (byte === 0) break;
+                bytes.push(byte);
+            }
+            return new TextDecoder().decode(new Uint8Array(bytes));
+        }
+
+        function displayCurrentConfig(config) {
+            const configText = `
+WiFi SSID: ${config.wifiSsid}
+WiFi 密码: ${config.wifiPassword ? '***' : '(空)'}
+UDP 端口: ${config.udpPort}
+mDNS 主机名: ${config.mdnsHostname}
+LED 引脚: ${config.ledPin}
+最大 LED 数: ${config.maxLeds}
+LED 颜色顺序: ${config.ledOrder}
+呼吸效果: ${config.breathingEnabled ? '启用' : '禁用'}
+呼吸基础色: R${config.breathingBaseR} G${config.breathingBaseG} B${config.breathingBaseB} W${config.breathingBaseW}
+            `.trim();
+            
+            document.getElementById('currentConfig').textContent = configText;
+        }
+
+        function fillForm(config) {
+            document.getElementById('wifiSsid').value = config.wifiSsid;
+            document.getElementById('wifiPassword').value = config.wifiPassword;
+            document.getElementById('udpPort').value = config.udpPort;
+            document.getElementById('mdnsHostname').value = config.mdnsHostname;
+            document.getElementById('ledPin').value = config.ledPin;
+            document.getElementById('maxLeds').value = config.maxLeds;
+            document.getElementById('ledOrder').value = config.ledOrder;
+            document.getElementById('breathingEnabled').checked = config.breathingEnabled;
+            document.getElementById('breathingBaseR').value = config.breathingBaseR;
+            document.getElementById('breathingBaseG').value = config.breathingBaseG;
+            document.getElementById('breathingBaseB').value = config.breathingBaseB;
+            document.getElementById('breathingBaseW').value = config.breathingBaseW;
+        }
+
+        function updateFirmware() {
+            if (!firmwareData || configOffset < 0) {
+                showStatus('请先加载固件文件', 'error');
+                return;
+            }
+
+            // 收集表单数据
+            const newConfig = {
+                magic: MAGIC_NUMBER,
+                version: CONFIG_VERSION,
+                wifiSsid: document.getElementById('wifiSsid').value,
+                wifiPassword: document.getElementById('wifiPassword').value,
+                udpPort: parseInt(document.getElementById('udpPort').value),
+                mdnsHostname: document.getElementById('mdnsHostname').value,
+                ledPin: parseInt(document.getElementById('ledPin').value),
+                maxLeds: parseInt(document.getElementById('maxLeds').value),
+                ledOrder: document.getElementById('ledOrder').value,
+                breathingEnabled: document.getElementById('breathingEnabled').checked,
+                breathingBaseR: parseInt(document.getElementById('breathingBaseR').value),
+                breathingBaseG: parseInt(document.getElementById('breathingBaseG').value),
+                breathingBaseB: parseInt(document.getElementById('breathingBaseB').value),
+                breathingBaseW: parseInt(document.getElementById('breathingBaseW').value)
+            };
+
+            // 验证输入
+            if (!validateConfig(newConfig)) {
+                return;
+            }
+
+            // 写入新配置
+            if (writeConfig(newConfig)) {
+                showStatus('配置已更新到固件中', 'success');
+                document.getElementById('downloadBtn').disabled = false;
+                
+                // 重新解析并显示配置
+                parseConfig();
+            } else {
+                showStatus('更新配置失败', 'error');
+            }
+        }
+
+        function validateConfig(config) {
+            if (config.wifiSsid.length === 0) {
+                showStatus('WiFi SSID 不能为空', 'error');
+                return false;
+            }
+            
+            if (config.wifiSsid.length > 63) {
+                showStatus('WiFi SSID 长度不能超过 63 个字符', 'error');
+                return false;
+            }
+            
+            if (config.wifiPassword.length > 63) {
+                showStatus('WiFi 密码长度不能超过 63 个字符', 'error');
+                return false;
+            }
+            
+            if (config.udpPort < 1024 || config.udpPort > 65535) {
+                showStatus('UDP 端口必须在 1024-65535 范围内', 'error');
+                return false;
+            }
+            
+            if (config.mdnsHostname.length === 0 || config.mdnsHostname.length > 31) {
+                showStatus('mDNS 主机名长度必须在 1-31 个字符之间', 'error');
+                return false;
+            }
+            
+            if (config.ledPin < 0 || config.ledPin > 21) {
+                showStatus('LED 引脚必须在 0-21 范围内', 'error');
+                return false;
+            }
+            
+            if (config.maxLeds < 1 || config.maxLeds > 1000) {
+                showStatus('LED 数量必须在 1-1000 范围内', 'error');
+                return false;
+            }
+            
+            if (config.ledOrder.length === 0 || config.ledOrder.length > 7) {
+                showStatus('LED 颜色顺序长度必须在 1-7 个字符之间', 'error');
+                return false;
+            }
+            
+            return true;
+        }
+
+        function writeConfig(config) {
+            try {
+                const view = new DataView(firmwareData.buffer, configOffset, CONFIG_SIZE);
+                
+                // 清空配置区域
+                for (let i = 0; i < CONFIG_SIZE; i++) {
+                    view.setUint8(i, 0);
+                }
+                
+                // 写入配置数据
+                view.setUint32(0, config.magic, true);
+                view.setUint32(4, config.version, true);
+                writeString(view, 8, config.wifiSsid, 64);
+                writeString(view, 72, config.wifiPassword, 64);
+                view.setUint16(136, config.udpPort, true);
+                writeString(view, 138, config.mdnsHostname, 32);
+                view.setUint8(170, config.ledPin);
+                view.setUint16(171, config.maxLeds, true);
+                writeString(view, 173, config.ledOrder, 8);
+                view.setUint8(181, 30); // led_refresh_rate
+                view.setUint8(182, config.breathingEnabled ? 1 : 0);
+                view.setUint8(183, config.breathingBaseR);
+                view.setUint8(184, config.breathingBaseG);
+                view.setUint8(185, config.breathingBaseB);
+                view.setUint8(186, config.breathingBaseW);
+                view.setUint8(187, 30);  // breathing_min_brightness
+                view.setUint8(188, 180); // breathing_max_brightness
+                view.setUint8(189, 2);   // breathing_step_size
+                view.setUint16(190, 33, true); // breathing_timer_period_ms
+                
+                // 计算并写入校验和
+                const checksum = calculateCRC32(view, CONFIG_SIZE - 4);
+                view.setUint32(CONFIG_SIZE - 4, checksum, true);
+                
+                return true;
+            } catch (error) {
+                console.error('写入配置失败:', error);
+                return false;
+            }
+        }
+
+        function writeString(view, offset, str, maxLength) {
+            const encoder = new TextEncoder();
+            const bytes = encoder.encode(str);
+            const length = Math.min(bytes.length, maxLength - 1);
+            
+            for (let i = 0; i < length; i++) {
+                view.setUint8(offset + i, bytes[i]);
+            }
+            // 确保字符串以 null 结尾
+            view.setUint8(offset + length, 0);
+        }
+
+        function calculateCRC32(view, length) {
+            // 简化的 CRC32 计算（实际应该使用标准 CRC32 算法）
+            let crc = 0;
+            for (let i = 0; i < length; i++) {
+                crc = (crc + view.getUint8(i)) & 0xFFFFFFFF;
+            }
+            return crc;
+        }
+
+        function downloadFirmware() {
+            if (!firmwareData) {
+                showStatus('没有可下载的固件', 'error');
+                return;
+            }
+
+            const blob = new Blob([firmwareData], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'display-ambient-light-board-configured.bin';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showStatus('固件已下载', 'success');
+        }
+
+        function resetForm() {
+            if (confirm('确定要重置表单吗？这将恢复到当前固件中的配置。')) {
+                if (firmwareData && configOffset >= 0) {
+                    parseConfig();
+                    showStatus('表单已重置', 'info');
+                }
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessages');
+            const statusElement = document.createElement('div');
+            statusElement.className = `status ${type}`;
+            statusElement.textContent = message;
+            
+            statusDiv.appendChild(statusElement);
+            
+            // 5秒后自动移除状态消息
+            setTimeout(() => {
+                if (statusElement.parentNode) {
+                    statusElement.parentNode.removeChild(statusElement);
+                }
+            }, 5000);
+            
+            // 滚动到状态消息
+            statusElement.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

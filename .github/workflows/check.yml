@@ -1,0 +1,48 @@
+name: Code Check
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: 'recursive'
+    
+    - name: Setup ESP-IDF
+      uses: espressif/esp-idf-ci-action@v1
+      with:
+        esp_idf_version: v5.1.2
+        target: esp32c3
+    
+    - name: Build project
+      run: |
+        . $IDF_PATH/export.sh
+        idf.py build
+    
+    - name: Check build artifacts
+      run: |
+        if [ ! -f build/display-ambient-light-board.bin ]; then
+          echo "Build failed: binary file not found"
+          exit 1
+        fi
+        echo "Build successful: binary size $(stat -c%s build/display-ambient-light-board.bin) bytes"
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      if: success()
+      with:
+        name: build-artifacts-${{ github.sha }}
+        path: |
+          build/display-ambient-light-board.bin
+          build/display-ambient-light-board.elf
+          build/display-ambient-light-board.map
+          tools/firmware-config-tool.html
+        retention-days: 7

@@ -45,7 +45,7 @@ esp_err_t mdns_service_init(void)
     ESP_LOGI(TAG, "mDNS initialized successfully");
     
     // Set hostname
-    ret = mdns_hostname_set(MDNS_HOSTNAME);
+    ret = mdns_hostname_set(config_get_mdns_hostname());
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to set mDNS hostname: %s", esp_err_to_name(ret));
         mdns_free();
@@ -74,8 +74,9 @@ esp_err_t mdns_service_init(void)
     }
     
     g_mdns_initialized = true;
-    ESP_LOGI(TAG, "mDNS service initialized with hostname: %s.local", MDNS_HOSTNAME);
-    
+    ESP_LOGI(TAG, "mDNS service initialized with hostname: %s.local",
+             config_get_mdns_hostname());
+
     return ESP_OK;
 }
 
