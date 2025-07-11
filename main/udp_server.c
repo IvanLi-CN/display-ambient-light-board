@@ -326,14 +326,18 @@ bool udp_server_parse_led_packet(const uint8_t* data, size_t len,
     *led_data = (uint8_t*)(data + LED_DATA_HEADER_SIZE);
     *led_len = len - LED_DATA_HEADER_SIZE;
 
-    // Validate LED data length (must be multiple of 4 for RGBW)
-    if ((*led_len % LED_CHANNELS_PER_LED) != 0) {
-        ESP_LOGW(TAG, "LED data length %" PRIu32 " is not multiple of %d", (uint32_t)*led_len, LED_CHANNELS_PER_LED);
-        return false;
+    // Get actual LED channels from configuration
+    int led_channels = strlen(CONFIG_LED_COLOR_ORDER_STRING);
+
+    // Validate LED data length (must be multiple of LED channels)
+    if ((*led_len % led_channels) != 0) {
+      ESP_LOGW(TAG, "LED data length %" PRIu32 " is not multiple of %d",
+               (uint32_t)*led_len, led_channels);
+      return false;
     }
 
     // Validate offset and length don't exceed maximum LEDs
-    uint16_t led_count = *led_len / LED_CHANNELS_PER_LED;
+    uint16_t led_count = *led_len / led_channels;
     if (*offset + led_count > MAX_LED_COUNT) {
         ESP_LOGW(TAG, "LED data exceeds maximum: offset=%d, count=%d, max=%d",
                  *offset, led_count, MAX_LED_COUNT);

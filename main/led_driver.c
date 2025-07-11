@@ -101,6 +101,49 @@ static size_t led_data_to_rmt_items(const uint8_t* led_data, size_t led_data_len
 }
 
 /**
+ * Get the actual number of LED channels from color order string
+ */
+static int get_led_channels_count(void) {
+  const char* color_order = CONFIG_LED_COLOR_ORDER_STRING;
+  return strlen(color_order);
+}
+
+/**
+ * Set LED color based on configured channel order
+ */
+static void set_led_color(uint8_t* buffer, size_t offset, uint8_t r, uint8_t g,
+                          uint8_t b, uint8_t w) {
+  const char* color_order = CONFIG_LED_COLOR_ORDER_STRING;
+  int channels = get_led_channels_count();
+
+  for (int i = 0; i < channels && i < 4; i++) {
+    switch (color_order[i]) {
+      case 'R':
+      case 'r':
+        buffer[offset + i] = r;
+        break;
+      case 'G':
+      case 'g':
+        buffer[offset + i] = g;
+        break;
+      case 'B':
+      case 'b':
+        buffer[offset + i] = b;
+        break;
+      case 'W':
+      case 'w':
+        buffer[offset + i] = w;
+        break;
+      default:
+        buffer[offset + i] = 0;
+        ESP_LOGW(TAG, "Unknown color channel '%c' in position %d",
+                 color_order[i], i);
+        break;
+    }
+  }
+}
+
+/**
  * Get status color based on current status
  */
 static void get_status_color(led_status_t status, uint8_t* r, uint8_t* g, uint8_t* b, uint8_t* w)
@@ -109,15 +152,51 @@ static void get_status_color(led_status_t status, uint8_t* r, uint8_t* g, uint8_
         case LED_STATUS_INIT:
             *r = 0; *g = 0; *b = 0; *w = 255;  // 白色 - 系统初始化
             break;
+        case LED_STATUS_WIFI_CONFIG_ERROR:
+          *r = 255;
+          *g = 0;
+          *b = 0;
+          *w = 0;  // 红色 - WiFi配置异常
+          break;
         case LED_STATUS_WIFI_CONNECTING:
             *r = 0; *g = 0; *b = 255; *w = 0;  // 蓝色 - WiFi连接中
             break;
+        case LED_STATUS_WIFI_CONNECTED:
+          *r = 0;
+          *g = 255;
+          *b = 255;
+          *w = 0;  // 青色 - WiFi连接成功
+          break;
+        case LED_STATUS_IP_REQUESTING:
+          *r = 255;
+          *g = 255;
+          *b = 0;
+          *w = 0;  // 黄色 - IP获取中
+          break;
+        case LED_STATUS_IP_SUCCESS:
+          *r = 0;
+          *g = 255;
+          *b = 0;
+          *w = 0;  // 绿色 - IP获取成功
+          break;
+        case LED_STATUS_IP_FAILED:
+          *r = 255;
+          *g = 128;
+          *b = 0;
+          *w = 0;  // 橙色 - IP获取失败
+          break;
         case LED_STATUS_NETWORK_READY:
             *r = 0; *g = 255; *b = 0; *w = 0;  // 绿色 - 网络就绪
             break;
         case LED_STATUS_OPERATIONAL:
             *r = 128; *g = 0; *b = 128; *w = 0; // 紫色 - 正常运行
             break;
+        case LED_STATUS_HOST_ONLINE_NO_DATA:
+          *r = 64;
+          *g = 0;
+          *b = 64;
+          *w = 0;  // 淡紫色 - 上位机在线但未发送数据
+          break;
         case LED_STATUS_WIFI_ERROR:
             *r = 255; *g = 0; *b = 0; *w = 0;  // 红色 - WiFi错误
             break;
@@ -152,59 +231,63 @@ static void breathing_timer_callback(TimerHandle_t xTimer)
     // Update breathing brightness
     if (g_breathing.direction == 1) {
         // Brightening
-        if (g_breathing.brightness < 200) {  // Reduced max brightness
-            g_breathing.brightness += 3;     // Slower change
+        if (g_breathing.brightness < CONFIG_BREATHING_MAX_BRIGHTNESS) {
+          g_breathing.brightness += CONFIG_BREATHING_STEP_SIZE;
         } else {
-            g_breathing.direction = 0;
+          g_breathing.direction = 0;
         }
     } else {
         // Dimming
-        if (g_breathing.brightness > 10) {   // Higher minimum brightness
-            g_breathing.brightness -= 3;     // Slower change
+        if (g_breathing.brightness > CONFIG_BREATHING_MIN_BRIGHTNESS) {
+          g_breathing.brightness -= CONFIG_BREATHING_STEP_SIZE;
         } else {
-            g_breathing.direction = 1;
+          g_breathing.direction = 1;
         }
     }
 
     // Calculate brightness factor (0.0 to 1.0)
-    float brightness_factor = (float)g_breathing.brightness / 200.0f;
+    float brightness_factor =
+        (float)g_breathing.brightness / (float)CONFIG_BREATHING_MAX_BRIGHTNESS;
 
     // Apply breathing effect
     // Add bounds checking to prevent buffer overflow
-    size_t max_leds = g_buffer_size / LED_CHANNELS_PER_LED;
+    int actual_channels = get_led_channels_count();
+    size_t max_leds = g_buffer_size / actual_channels;
 
     if (g_mixed_mode) {
         // Mixed mode: Only update first LED (status indicator)
         if (max_leds > 0) {
-            size_t i = 0;  // First LED
-            g_led_buffer[i + 0] = (uint8_t)(g_breathing.status_g * brightness_factor); // G
-            g_led_buffer[i + 1] = (uint8_t)(g_breathing.status_r * brightness_factor); // R
-            g_led_buffer[i + 2] = (uint8_t)(g_breathing.status_b * brightness_factor); // B
-            g_led_buffer[i + 3] = (uint8_t)(g_breathing.status_w * brightness_factor); // W
+          uint8_t r = (uint8_t)(g_breathing.status_r * brightness_factor);
+          uint8_t g = (uint8_t)(g_breathing.status_g * brightness_factor);
+          uint8_t b = (uint8_t)(g_breathing.status_b * brightness_factor);
+          uint8_t w = (uint8_t)(g_breathing.status_w * brightness_factor);
+          set_led_color(g_led_buffer, 0, r, g, b, w);
         }
     } else {
         // Full breathing mode: Update ALL LEDs
         for (size_t led_idx = 0; led_idx < max_leds; led_idx++) {
-            size_t i = led_idx * LED_CHANNELS_PER_LED;
+          size_t i = led_idx * actual_channels;
 
-            // Double check bounds
-            if (i + 3 >= g_buffer_size) {
-                ESP_LOGW(TAG, "LED buffer bounds exceeded at index %zu", i);
-                break;
-            }
+          // Double check bounds
+          if (i + 3 >= g_buffer_size) {
+            ESP_LOGW(TAG, "LED buffer bounds exceeded at index %zu", i);
+            break;
+          }
 
             if (led_idx == 0) {
                 // First LED: Status indicator with breathing
-                g_led_buffer[i + 0] = (uint8_t)(g_breathing.status_g * brightness_factor); // G
-                g_led_buffer[i + 1] = (uint8_t)(g_breathing.status_r * brightness_factor); // R
-                g_led_buffer[i + 2] = (uint8_t)(g_breathing.status_b * brightness_factor); // B
-                g_led_buffer[i + 3] = (uint8_t)(g_breathing.status_w * brightness_factor); // W
+                uint8_t r = (uint8_t)(g_breathing.status_r * brightness_factor);
+                uint8_t g = (uint8_t)(g_breathing.status_g * brightness_factor);
+                uint8_t b = (uint8_t)(g_breathing.status_b * brightness_factor);
+                uint8_t w = (uint8_t)(g_breathing.status_w * brightness_factor);
+                set_led_color(g_led_buffer, i, r, g, b, w);
             } else {
                 // Other LEDs: Base breathing color
-                g_led_buffer[i + 0] = (uint8_t)(g_breathing.base_g * brightness_factor); // G
-                g_led_buffer[i + 1] = (uint8_t)(g_breathing.base_r * brightness_factor); // R
-                g_led_buffer[i + 2] = (uint8_t)(g_breathing.base_b * brightness_factor); // B
-                g_led_buffer[i + 3] = (uint8_t)(g_breathing.base_w * brightness_factor); // W
+                uint8_t r = (uint8_t)(g_breathing.base_r * brightness_factor);
+                uint8_t g = (uint8_t)(g_breathing.base_g * brightness_factor);
+                uint8_t b = (uint8_t)(g_breathing.base_b * brightness_factor);
+                uint8_t w = (uint8_t)(g_breathing.base_w * brightness_factor);
+                set_led_color(g_led_buffer, i, r, g, b, w);
             }
         }
     }
@@ -222,8 +305,13 @@ esp_err_t led_driver_init(gpio_num_t data_pin)
     
     ESP_LOGI(TAG, "Initializing LED driver on GPIO %d", data_pin);
 
+    // Get actual channel count from color order string
+    int actual_channels = get_led_channels_count();
+    ESP_LOGI(TAG, "LED color order: %s (%d channels per LED)",
+             CONFIG_LED_COLOR_ORDER_STRING, actual_channels);
+
     g_data_pin = data_pin;
-    g_buffer_size = g_led_count * LED_CHANNELS_PER_LED;
+    g_buffer_size = g_led_count * actual_channels;
 
     // Allocate LED buffer
     g_led_buffer = malloc(g_buffer_size);
@@ -281,12 +369,13 @@ esp_err_t led_driver_init(gpio_num_t data_pin)
     }
     
     // Create breathing timer
-    g_breathing_timer = xTimerCreate("led_breathing",
-                                    pdMS_TO_TICKS(100),  // 100ms period for smoother breathing
-                                    pdTRUE,  // Auto-reload
-                                    NULL,
-                                    breathing_timer_callback);
-    
+    g_breathing_timer = xTimerCreate(
+        "led_breathing",
+        pdMS_TO_TICKS(
+            CONFIG_BREATHING_TIMER_PERIOD_MS),  // Use configured period
+        pdTRUE,                                 // Auto-reload
+        NULL, breathing_timer_callback);
+
     if (!g_breathing_timer) {
         ESP_LOGE(TAG, "Failed to create breathing timer");
         vSemaphoreDelete(g_transmission_semaphore);
@@ -317,8 +406,9 @@ esp_err_t led_driver_update_buffer(uint16_t offset, const uint8_t* data, size_t 
     }
     
     // Calculate byte offset
-    size_t byte_offset = offset * LED_CHANNELS_PER_LED;
-    
+    int actual_channels = get_led_channels_count();
+    size_t byte_offset = offset * actual_channels;
+
     // Check bounds
     if (byte_offset + len > g_buffer_size) {
         ESP_LOGW(TAG, "LED data exceeds buffer: offset=%d, len=%d, buffer_size=%d", 
@@ -386,12 +476,10 @@ esp_err_t led_driver_set_all(uint8_t r, uint8_t g, uint8_t b, uint8_t w)
         return ESP_ERR_INVALID_STATE;
     }
 
-    // Set all LEDs to the specified color (GRBW order for SK6812)
-    for (size_t i = 0; i < g_buffer_size; i += LED_CHANNELS_PER_LED) {
-        g_led_buffer[i + 0] = g;  // Green
-        g_led_buffer[i + 1] = r;  // Red
-        g_led_buffer[i + 2] = b;  // Blue
-        g_led_buffer[i + 3] = w;  // White
+    // Set all LEDs to the specified color using configured channel order
+    int actual_channels = get_led_channels_count();
+    for (size_t i = 0; i < g_buffer_size; i += actual_channels) {
+      set_led_color(g_led_buffer, i, r, g, b, w);
     }
 
     ESP_LOGI(TAG, "Set all LEDs to RGBW(%d,%d,%d,%d)", r, g, b, w);
@@ -423,20 +511,26 @@ esp_err_t led_driver_set_breathing_effect(bool enable)
 
     if (enable) {
         // Initialize breathing parameters
-        g_breathing.brightness = 10;      // Start with low brightness
+        g_breathing.brightness = 0;       // Start from 0 on power-up
         g_breathing.direction = 1;        // Start brightening
-        g_breathing.step_delay_ms = 100;  // 100ms timer period
+        g_breathing.step_delay_ms =
+            CONFIG_BREATHING_TIMER_PERIOD_MS;  // Use configured timer period
 
         // Set default status (will be updated by state machine)
         g_breathing.status = LED_STATUS_INIT;
         get_status_color(g_breathing.status, &g_breathing.status_r, &g_breathing.status_g,
                         &g_breathing.status_b, &g_breathing.status_w);
 
-        // Set default base breathing color (soft blue)
-        g_breathing.base_r = 0;
-        g_breathing.base_g = 50;
-        g_breathing.base_b = 100;
-        g_breathing.base_w = 0;
+        // Set default base breathing color from compile-time parsed hex
+        // configuration
+        g_breathing.base_r = BREATHING_BASE_R;
+        g_breathing.base_g = BREATHING_BASE_G;
+        g_breathing.base_b = BREATHING_BASE_B;
+        g_breathing.base_w = BREATHING_BASE_W;
+
+        ESP_LOGI(TAG, "Base breathing color from hex '%s': RGBW(%d,%d,%d,%d)",
+                 CONFIG_BREATHING_BASE_COLOR_HEX, g_breathing.base_r,
+                 g_breathing.base_g, g_breathing.base_b, g_breathing.base_w);
 
         // Clear all LEDs first and transmit to ensure clean state
         if (g_led_buffer && g_buffer_size > 0) {
@@ -478,10 +572,19 @@ esp_err_t led_driver_set_status(led_status_t status)
     get_status_color(status, &g_breathing.status_r, &g_breathing.status_g,
                     &g_breathing.status_b, &g_breathing.status_w);
 
-    const char* status_names[] = {
-        "INIT", "WIFI_CONNECTING", "NETWORK_READY", "OPERATIONAL",
-        "WIFI_ERROR", "UDP_ERROR", "GENERAL_ERROR"
-    };
+    const char* status_names[] = {"INIT",
+                                  "WIFI_CONFIG_ERROR",
+                                  "WIFI_CONNECTING",
+                                  "WIFI_CONNECTED",
+                                  "IP_REQUESTING",
+                                  "IP_SUCCESS",
+                                  "IP_FAILED",
+                                  "NETWORK_READY",
+                                  "OPERATIONAL",
+                                  "HOST_ONLINE_NO_DATA",
+                                  "WIFI_ERROR",
+                                  "UDP_ERROR",
+                                  "GENERAL_ERROR"};
 
     if (status < sizeof(status_names) / sizeof(status_names[0])) {
         ESP_LOGI(TAG, "Status LED set to: %s (R:%d G:%d B:%d W:%d)",
@@ -533,7 +636,8 @@ esp_err_t led_driver_set_led_count(uint16_t count)
     }
 
     g_led_count = count;
-    size_t new_buffer_size = count * LED_CHANNELS_PER_LED;
+    int actual_channels = get_led_channels_count();
+    size_t new_buffer_size = count * actual_channels;
 
     if (g_initialized && new_buffer_size != g_buffer_size) {
         // Reallocate buffer if size changed

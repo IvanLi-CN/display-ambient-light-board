@@ -8,7 +8,7 @@
 // Hardware Configuration - use sdkconfig values
 #define LED_DATA_PIN            (gpio_num_t)CONFIG_LED_DATA_PIN
 #define MAX_LED_COUNT           CONFIG_MAX_LED_COUNT
-#define LED_CHANNELS_PER_LED    4  // RGBW
+// LED_CHANNELS_PER_LED is now defined from sdkconfig
 
 // Network Configuration - use sdkconfig values
 #define UDP_PORT                CONFIG_UDP_PORT
@@ -42,6 +42,66 @@
 #define SK6812_T0H_TICKS        3   // 0-bit high time: 300ns
 #define SK6812_T0L_TICKS        9   // 0-bit low time: 900ns
 #define SK6812_RESET_TICKS      800 // Reset pulse: 80us
+
+// LED Configuration - channels calculated dynamically from color order string
+// Helper macro to get string length at compile time
+#define STRLEN_CONST(s) (sizeof(s) - 1)
+#define LED_CHANNELS_PER_LED STRLEN_CONST(CONFIG_LED_COLOR_ORDER_STRING)
+
+// Compile-time hex color parsing macros
+#define HEX_CHAR_TO_INT(c)                     \
+  ((c) >= '0' && (c) <= '9'   ? (c) - '0'      \
+   : (c) >= 'A' && (c) <= 'F' ? (c) - 'A' + 10 \
+   : (c) >= 'a' && (c) <= 'f' ? (c) - 'a' + 10 \
+                              : 0)
+
+#define HEX_BYTE_TO_INT(h, l) ((HEX_CHAR_TO_INT(h) << 4) | HEX_CHAR_TO_INT(l))
+
+// Extract color components from hex string based on color order
+// These macros work at compile time for optimal performance
+#define GET_COLOR_COMPONENT(hex_str, color_order, channel, pos)                \
+  (((color_order)[pos] == (channel) || (color_order)[pos] == ((channel) + 32)) \
+       ? HEX_BYTE_TO_INT((hex_str)[pos * 2], (hex_str)[pos * 2 + 1])           \
+       : 0)
+
+// Compile-time color extraction for different channel positions
+#define EXTRACT_R_COMPONENT(hex_str, color_order)      \
+  (GET_COLOR_COMPONENT(hex_str, color_order, 'R', 0) + \
+   GET_COLOR_COMPONENT(hex_str, color_order, 'R', 1) + \
+   GET_COLOR_COMPONENT(hex_str, color_order, 'R', 2) + \
+   GET_COLOR_COMPONENT(hex_str, color_order, 'R', 3))
+
+#define EXTRACT_G_COMPONENT(hex_str, color_order)      \
+  (GET_COLOR_COMPONENT(hex_str, color_order, 'G', 0) + \
+   GET_COLOR_COMPONENT(hex_str, color_order, 'G', 1) + \
+   GET_COLOR_COMPONENT(hex_str, color_order, 'G', 2) + \
+   GET_COLOR_COMPONENT(hex_str, color_order, 'G', 3))
+
+#define EXTRACT_B_COMPONENT(hex_str, color_order)      \
+  (GET_COLOR_COMPONENT(hex_str, color_order, 'B', 0) + \
+   GET_COLOR_COMPONENT(hex_str, color_order, 'B', 1) + \
+   GET_COLOR_COMPONENT(hex_str, color_order, 'B', 2) + \
+   GET_COLOR_COMPONENT(hex_str, color_order, 'B', 3))
+
+#define EXTRACT_W_COMPONENT(hex_str, color_order)      \
+  (GET_COLOR_COMPONENT(hex_str, color_order, 'W', 0) + \
+   GET_COLOR_COMPONENT(hex_str, color_order, 'W', 1) + \
+   GET_COLOR_COMPONENT(hex_str, color_order, 'W', 2) + \
+   GET_COLOR_COMPONENT(hex_str, color_order, 'W', 3))
+
+// Final compile-time color component definitions
+#define BREATHING_BASE_R                               \
+  EXTRACT_R_COMPONENT(CONFIG_BREATHING_BASE_COLOR_HEX, \
+                      CONFIG_LED_COLOR_ORDER_STRING)
+#define BREATHING_BASE_G                               \
+  EXTRACT_G_COMPONENT(CONFIG_BREATHING_BASE_COLOR_HEX, \
+                      CONFIG_LED_COLOR_ORDER_STRING)
+#define BREATHING_BASE_B                               \
+  EXTRACT_B_COMPONENT(CONFIG_BREATHING_BASE_COLOR_HEX, \
+                      CONFIG_LED_COLOR_ORDER_STRING)
+#define BREATHING_BASE_W                               \
+  EXTRACT_W_COMPONENT(CONFIG_BREATHING_BASE_COLOR_HEX, \
+                      CONFIG_LED_COLOR_ORDER_STRING)
 
 // Memory Configuration
 #define LED_BUFFER_SIZE         (MAX_LED_COUNT * LED_CHANNELS_PER_LED)

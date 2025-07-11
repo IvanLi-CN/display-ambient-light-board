@@ -191,8 +191,8 @@ static esp_err_t state_transition_callback(system_state_t from_state, system_sta
             #if CONFIG_ENABLE_BREATHING_EFFECT
             ESP_LOGI(TAG, "Setting up LED breathing effect for system initialization");
             // Set colors first before enabling breathing effect
-            led_driver_set_breathing_color(CONFIG_BREATHING_BASE_RED, CONFIG_BREATHING_BASE_GREEN,
-                                         CONFIG_BREATHING_BASE_BLUE, CONFIG_BREATHING_BASE_WHITE);
+            led_driver_set_breathing_color(BREATHING_BASE_R, BREATHING_BASE_G,
+                                           BREATHING_BASE_B, BREATHING_BASE_W);
             led_driver_set_status(LED_STATUS_INIT);
             // Small delay to ensure settings are applied
             vTaskDelay(pdMS_TO_TICKS(50));

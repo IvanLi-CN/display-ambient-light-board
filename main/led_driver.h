@@ -11,13 +11,19 @@
  * System status colors for first LED
  */
 typedef enum {
-    LED_STATUS_INIT,        // 系统初始化 - 白色
-    LED_STATUS_WIFI_CONNECTING, // WiFi连接中 - 蓝色
-    LED_STATUS_NETWORK_READY,   // 网络就绪 - 绿色
-    LED_STATUS_OPERATIONAL,     // 正常运行 - 紫色
-    LED_STATUS_WIFI_ERROR,      // WiFi错误 - 红色
-    LED_STATUS_UDP_ERROR,       // UDP错误 - 橙色
-    LED_STATUS_GENERAL_ERROR    // 一般错误 - 快闪红色
+  LED_STATUS_INIT,                 // 系统初始化 - 白色
+  LED_STATUS_WIFI_CONFIG_ERROR,    // WiFi配置异常 - 快闪红色
+  LED_STATUS_WIFI_CONNECTING,      // WiFi连接中 - 蓝色
+  LED_STATUS_WIFI_CONNECTED,       // WiFi连接成功 - 青色
+  LED_STATUS_IP_REQUESTING,        // IP获取中 - 黄色
+  LED_STATUS_IP_SUCCESS,           // IP获取成功 - 绿色
+  LED_STATUS_IP_FAILED,            // IP获取失败 - 橙色
+  LED_STATUS_NETWORK_READY,        // 网络就绪 - 绿色
+  LED_STATUS_OPERATIONAL,          // 正常运行 - 紫色
+  LED_STATUS_HOST_ONLINE_NO_DATA,  // 上位机在线但未发送数据 - 淡紫色
+  LED_STATUS_WIFI_ERROR,           // WiFi错误 - 红色
+  LED_STATUS_UDP_ERROR,            // UDP错误 - 橙色
+  LED_STATUS_GENERAL_ERROR         // 一般错误 - 快闪红色
 } led_status_t;
 
 /**

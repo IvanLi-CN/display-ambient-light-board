@@ -34,6 +34,35 @@ menu "Ambient Light Board Configuration"
         help
             Maximum number of LEDs supported by the board.
 
+    config LED_COLOR_ORDER_STRING
+        string "LED Color Channel Order"
+        default "GRBW"
+        help
+            Specify the color channel order for your LED strip using letters R, G, B, W.
+
+            Common configurations:
+            - WS2812B (RGB): "GRB" or "RGB"
+            - SK6812 (RGBW): "GRBW" or "RGBW"
+
+            Examples:
+            - "RGB" = Red, Green, Blue (3 channels)
+            - "GRB" = Green, Red, Blue (3 channels, most WS2812B)
+            - "RGBW" = Red, Green, Blue, White (4 channels)
+            - "GRBW" = Green, Red, Blue, White (4 channels, most SK6812)
+            - "WRGB" = White, Red, Green, Blue (4 channels, some variants)
+
+            How to determine your LED strip order:
+            1. Check your LED strip datasheet or manufacturer specifications
+            2. Test with a simple color: set RGB(255,0,0) and see which color appears
+            3. If red appears as expected, your strip likely uses RGB order
+            4. If green appears instead, your strip likely uses GRB order
+            5. For RGBW strips, test white channel separately
+
+            Note: If using mixed LED strips, use RGB order for better compatibility.
+            The string length determines the number of channels per LED automatically.
+
+
+
     config UDP_PORT
         int "UDP Server Port"
         default 23042
@@ -60,37 +89,65 @@ menu "Ambient Light Board Configuration"
         help
             Enable breathing effect for all LEDs with status indicator on first LED.
 
-    config BREATHING_BASE_RED
-        int "Base breathing color - Red component"
-        default 20
-        range 0 255
+    config BREATHING_BASE_COLOR_HEX
+        string "Base breathing color (Hex)"
+        default "143250"
         depends on ENABLE_BREATHING_EFFECT
         help
-            Red component of base breathing color for all LEDs except status LED.
+            Base breathing color for all LEDs except status LED in hexadecimal format.
+            This value is converted to individual color components at compile time.
 
-    config BREATHING_BASE_GREEN
-        int "Base breathing color - Green component"
-        default 20
-        range 0 255
-        depends on ENABLE_BREATHING_EFFECT
-        help
-            Green component of base breathing color for all LEDs except status LED.
+            Format depends on your LED strip configuration:
+            - RGB strips (3 channels): "RRGGBB" (6 characters)
+              Example: "FF0000" = Red, "00FF00" = Green, "0000FF" = Blue
+            - RGBW strips (4 channels): "RRGGBBWW" (8 characters)
+              Example: "FF000000" = Red, "00FF0000" = Green, "0000FF00" = Blue, "000000FF" = White
 
-    config BREATHING_BASE_BLUE
-        int "Base breathing color - Blue component"
-        default 50
-        range 0 255
-        depends on ENABLE_BREATHING_EFFECT
-        help
-            Blue component of base breathing color for all LEDs except status LED.
+            The system will automatically validate that the hex string length matches
+            your LED_COLOR_ORDER_STRING configuration at compile time.
 
-    config BREATHING_BASE_WHITE
-        int "Base breathing color - White component"
-        default 0
+            Default "143250" = RGB(20,50,80) - a soft blue color.
+
+            Examples:
+            - Pure red: "FF0000" (RGB) or "FF000000" (RGBW)
+            - Pure white: "FFFFFF" (RGB) or "000000FF" (RGBW, using W channel)
+            - Warm white: "FFE4B5" (RGB) or "FFE4B500" (RGBW)
+            - Cool blue: "4169E1" (RGB) or "4169E100" (RGBW)
+
+            Note: Color parsing happens at compile time for optimal performance.
+
+    config BREATHING_MIN_BRIGHTNESS
+        int "Breathing effect minimum brightness"
+        default 30
         range 0 255
         depends on ENABLE_BREATHING_EFFECT
         help
-            White component of base breathing color for all LEDs except status LED.
+            Minimum brightness level for breathing effect (0-255).
+
+    config BREATHING_MAX_BRIGHTNESS
+        int "Breathing effect maximum brightness"
+        default 180
+        range 0 255
+        depends on ENABLE_BREATHING_EFFECT
+        help
+            Maximum brightness level for breathing effect (0-255).
+
+    config BREATHING_STEP_SIZE
+        int "Breathing effect step size"
+        default 2
+        range 1 10
+        depends on ENABLE_BREATHING_EFFECT
+        help
+            Step size for brightness changes in breathing effect.
+
+    config BREATHING_TIMER_PERIOD_MS
+        int "Breathing effect timer period (ms)"
+        default 33
+        range 10 1000
+        depends on ENABLE_BREATHING_EFFECT
+        help
+            Timer period for breathing effect updates in milliseconds.
+            33ms = ~30Hz refresh rate for smooth breathing effect.
 
     config DEBUG_ENABLE_WIFI
         bool "Enable WiFi debug logging"
