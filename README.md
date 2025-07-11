@@ -12,13 +12,7 @@ A WiFi-enabled ambient light controller based on ESP32-C3, designed to drive SK6
 - **State machine** for robust system management
 - **Advanced Status System**:
   - All LEDs breathe with configurable ambient color
-  - First LED shows system status with different colors:
-    - 🤍 **White**: System initialization
-    - 🔵 **Blue**: WiFi connecting
-    - 🟢 **Green**: Network ready/DHCP
-    - 🟣 **Purple**: Operational (ready for data)
-    - 🔴 **Red**: WiFi/General errors
-    - 🟠 **Orange**: UDP/DHCP errors
+  - First LED shows system status with different colors (see LED Status Indication section)
 - **Configurable Settings**: WiFi credentials, LED count, colors, and more via menuconfig
 - **Real-time statistics** and monitoring
 
@@ -233,4 +227,4 @@ I (12345) MAIN: LED stats: 1200 transmissions (2400000 bytes)
 
 ## License
 
-This project is licensed under GPLv3, consistent with the original board-rs project.
+This project is licensed under the GNU General Public License v3.0 (GPLv3). See the [LICENSE](LICENSE) file for more details.
