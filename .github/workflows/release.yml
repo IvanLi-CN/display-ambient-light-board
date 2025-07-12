@@ -64,7 +64,7 @@ jobs:
     - name: Setup ESP-IDF
       uses: espressif/esp-idf-ci-action@v1
       with:
-        esp_idf_version: v5.1.2
+        esp_idf_version: v5.4.2
         target: esp32c3
     
     - name: Build project
@@ -111,7 +111,7 @@ jobs:
           ## 构建信息
           - **构建时间:** $(date +'%Y-%m-%d %H:%M:%S UTC')
           - **提交哈希:** ${{ github.sha }}
-          - **ESP-IDF 版本:** v5.1.2
+          - **ESP-IDF 版本:** v5.4.2
           - **目标芯片:** ESP32-C3
           
           ## 文件说明
