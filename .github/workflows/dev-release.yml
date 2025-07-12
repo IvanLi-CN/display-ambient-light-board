@@ -15,16 +15,11 @@ jobs:
         submodules: 'recursive'
         fetch-depth: 0
     
-    - name: Setup ESP-IDF
+    - name: Build with ESP-IDF
       uses: espressif/esp-idf-ci-action@v1
       with:
         esp_idf_version: v5.4.2
         target: esp32c3
-    
-    - name: Build project
-      run: |
-        . $IDF_PATH/export.sh
-        idf.py build
     
     - name: Generate development version
       id: dev_version
