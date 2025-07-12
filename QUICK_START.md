@@ -1,179 +1,179 @@
-# 🚀 快速开始指南
+# 🚀 Quick Start Guide
 
-## 概述
+## Overview
 
-本项目现在支持用户友好的固件配置方式！你不再需要修改代码或重新编译，只需使用我们的 Web 配置工具即可个性化你的环境光板。
+This project now supports user-friendly firmware configuration! You no longer need to modify code or recompile. Simply use our web configuration tool to customize your ambient light board.
 
-## 📥 获取文件
+## 📥 Getting Files
 
-### 方法1：从 Releases 下载（推荐）
+### Method 1: Download from Releases (Recommended)
 
-1. 访问 [Releases 页面](../../releases)
-2. 下载最新版本的以下文件：
-   - `display-ambient-light-board.bin` - 固件模板
-   - `firmware-config-tool.html` - 配置工具
+1. Visit the [Releases page](../../releases)
+2. Download the latest version of the following files:
+   - `display-ambient-light-board.bin` - Firmware template
+   - `firmware-config-tool.html` - Configuration tool
 
-### 方法2：从开发版本下载
+### Method 2: Download from Development Build
 
-1. 访问 [Actions 页面](../../actions)
-2. 选择最新的成功构建
-3. 下载 Artifacts 中的文件
+1. Visit the [Actions page](../../actions)
+2. Select the latest successful build
+3. Download files from Artifacts
 
-## ⚙️ 配置固件
+## ⚙️ Configure Firmware
 
-### 1. 打开配置工具
+### 1. Open Configuration Tool
 
-在浏览器中打开 `firmware-config-tool.html` 文件
+Open the `firmware-config-tool.html` file in your browser
 
-### 2. 上传固件
+### 2. Upload Firmware
 
-- 拖拽 `display-ambient-light-board.bin` 到上传区域
-- 或点击"选择固件文件"按钮选择文件
+- Drag and drop `display-ambient-light-board.bin` to the upload area
+- Or click "Select Firmware File" button to choose the file
 
-### 3. 配置参数
+### 3. Configure Parameters
 
-**WiFi 设置**（必填）：
-- WiFi SSID：你的 WiFi 网络名称
-- WiFi 密码：你的 WiFi 密码
+**WiFi Settings** (Required):
+- WiFi SSID: Your WiFi network name
+- WiFi Password: Your WiFi password
 
-**网络设置**（可选）：
-- UDP 端口：默认 23042
-- mDNS 主机名：默认 board-rs（访问地址为 board-rs.local）
+**Network Settings** (Optional):
+- UDP Port: Default 23042
+- mDNS Hostname: Default board-rs (accessible at board-rs.local)
 
-**LED 设置**（可选）：
-- LED 引脚：默认 GPIO 4
-- 最大 LED 数：默认 500
-- LED 颜色顺序：默认 RGBW
+**LED Settings** (Optional):
+- LED Pin: Default GPIO 4
+- Max LED Count: Default 500
+- LED Color Order: Default RGBW
 
-**呼吸效果**（可选）：
-- 启用/禁用呼吸效果
-- 基础颜色设置（RGBW）
+**Breathing Effect** (Optional):
+- Enable/Disable breathing effect
+- Base color settings (RGBW)
 
-### 4. 下载配置后的固件
+### 4. Download Configured Firmware
 
-1. 点击"更新配置"按钮
-2. 点击"下载配置后的固件"按钮
-3. 保存 `display-ambient-light-board-configured.bin` 文件
+1. Click "Update Configuration" button
+2. Click "Download Configured Firmware" button
+3. Save the `display-ambient-light-board-configured.bin` file
 
-## 🔥 烧录固件
+## 🔥 Flash Firmware
 
-### 使用 esptool.py
+### Using esptool.py
 
 ```bash
-# 安装 esptool（如果还没安装）
+# Install esptool (if not already installed)
 pip install esptool
 
-# 烧录固件
+# Flash firmware
 esptool.py --chip esp32c3 --port /dev/ttyUSB0 --baud 460800 write_flash 0x0 display-ambient-light-board-configured.bin
 ```
 
-### 端口说明
+### Port Information
 
-- **Linux**: `/dev/ttyUSB0` 或 `/dev/ttyACM0`
-- **macOS**: `/dev/cu.usbserial-*` 或 `/dev/cu.usbmodem*`
-- **Windows**: `COM3`、`COM4` 等
+- **Linux**: `/dev/ttyUSB0` or `/dev/ttyACM0`
+- **macOS**: `/dev/cu.usbserial-*` or `/dev/cu.usbmodem*`
+- **Windows**: `COM3`, `COM4`, etc.
 
-## 🌐 使用设备
+## 🌐 Using the Device
 
-### 1. 首次启动
+### 1. First Boot
 
-设备启动后会：
-1. 连接到你配置的 WiFi 网络
-2. 启动 UDP 服务器（端口 23042）
-3. 启用 mDNS 服务（board-rs.local）
-4. 开始呼吸效果（如果启用）
+After startup, the device will:
+1. Connect to your configured WiFi network
+2. Start UDP server (port 23042)
+3. Enable mDNS service (board-rs.local)
+4. Begin breathing effect (if enabled)
 
-### 2. 发送环境光数据
+### 2. Send Ambient Light Data
 
-使用 UDP 协议发送 RGB 数据到设备：
+Use UDP protocol to send RGB data to the device:
 
 ```python
 import socket
 
-# 连接到设备
+# Connect to device
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-# 发送 RGB 数据（每个 LED 3字节：R, G, B）
-rgb_data = bytes([255, 0, 0] * 10)  # 10个红色 LED
+# Send RGB data (3 bytes per LED: R, G, B)
+rgb_data = bytes([255, 0, 0] * 10)  # 10 red LEDs
 sock.sendto(rgb_data, ('board-rs.local', 23042))
 ```
 
-### 3. 网络发现
+### 3. Network Discovery
 
-设备支持 mDNS，可以通过主机名访问：
-- 默认：`board-rs.local`
-- 自定义：`你的主机名.local`
+The device supports mDNS and can be accessed via hostname:
+- Default: `board-rs.local`
+- Custom: `your-hostname.local`
 
-## 🔧 故障排除
+## 🔧 Troubleshooting
 
-### 配置工具无法识别固件
+### Configuration Tool Cannot Recognize Firmware
 
-**问题**：上传固件后显示"未找到配置区域"
+**Problem**: "Configuration area not found" message after uploading firmware
 
-**解决**：
-1. 确保使用的是最新版本的固件
-2. 检查文件是否完整下载
-3. 尝试重新下载固件文件
+**Solution**:
+1. Ensure you're using the latest version of firmware
+2. Check if the file was downloaded completely
+3. Try re-downloading the firmware file
 
-### 设备无法连接 WiFi
+### Device Cannot Connect to WiFi
 
-**问题**：设备启动后无法连接网络
+**Problem**: Device cannot connect to network after startup
 
-**解决**：
-1. 检查 WiFi SSID 和密码是否正确
-2. 确认 WiFi 网络是 2.4GHz（ESP32-C3 不支持 5GHz）
-3. 检查 WiFi 网络是否有特殊字符
-4. 重新配置固件并烧录
+**Solution**:
+1. Check if WiFi SSID and password are correct
+2. Confirm WiFi network is 2.4GHz (ESP32-C3 doesn't support 5GHz)
+3. Check if WiFi network name contains special characters
+4. Reconfigure firmware and flash again
 
-### 无法发现设备
+### Cannot Discover Device
 
-**问题**：无法通过 mDNS 找到设备
+**Problem**: Cannot find device via mDNS
 
-**解决**：
-1. 确认设备已连接到同一网络
-2. 尝试使用 IP 地址而不是主机名
-3. 检查防火墙设置
-4. 使用网络扫描工具查找设备 IP
+**Solution**:
+1. Confirm device is connected to the same network
+2. Try using IP address instead of hostname
+3. Check firewall settings
+4. Use network scanning tools to find device IP
 
-### LED 不亮或颜色错误
+### LEDs Not Working or Wrong Colors
 
-**问题**：LED 显示异常
+**Problem**: LED display abnormal
 
-**解决**：
-1. 检查 LED 引脚配置是否正确
-2. 确认 LED 颜色顺序设置（RGB/GRB/RGBW等）
-3. 检查 LED 数量设置
-4. 验证硬件连接
+**Solution**:
+1. Check if LED pin configuration is correct
+2. Confirm LED color order setting (RGB/GRB/RGBW etc.)
+3. Check LED count setting
+4. Verify hardware connections
 
-## 📋 配置参数说明
+## 📋 Configuration Parameters
 
-| 参数 | 默认值 | 说明 | 范围 |
-|------|--------|------|------|
-| WiFi SSID | TEMPLATE_SSID | WiFi 网络名称 | 1-63 字符 |
-| WiFi 密码 | TEMPLATE_PASS | WiFi 密码 | 0-63 字符 |
-| UDP 端口 | 23042 | UDP 服务器端口 | 1024-65535 |
-| mDNS 主机名 | board-rs | 设备网络名称 | 1-31 字符 |
-| LED 引脚 | 4 | GPIO 引脚号 | 0-21 |
-| 最大 LED 数 | 500 | 支持的 LED 数量 | 1-1000 |
-| LED 颜色顺序 | RGBW | 颜色通道顺序 | RGB/GRB/RGBW 等 |
+| Parameter | Default Value | Description | Range |
+|-----------|---------------|-------------|-------|
+| WiFi SSID | TEMPLATE_SSID | WiFi network name | 1-63 characters |
+| WiFi Password | TEMPLATE_PASS | WiFi password | 0-63 characters |
+| UDP Port | 23042 | UDP server port | 1024-65535 |
+| mDNS Hostname | board-rs | Device network name | 1-31 characters |
+| LED Pin | 4 | GPIO pin number | 0-21 |
+| Max LED Count | 500 | Supported LED count | 1-1000 |
+| LED Color Order | RGBW | Color channel order | RGB/GRB/RGBW etc. |
 
-## 🎯 下一步
+## 🎯 Next Steps
 
-1. **测试连接**：确认设备能正常连接 WiFi
-2. **发送数据**：尝试发送 RGB 数据到设备
-3. **调整参数**：根据需要重新配置固件
-4. **集成应用**：将设备集成到你的环境光系统中
+1. **Test Connection**: Confirm device can connect to WiFi properly
+2. **Send Data**: Try sending RGB data to the device
+3. **Adjust Parameters**: Reconfigure firmware as needed
+4. **Integrate Application**: Integrate device into your ambient light system
 
-## 💡 提示
+## 💡 Tips
 
-- 配置工具完全在浏览器中运行，不会上传任何数据
-- 可以保存多个配置版本的固件
-- 建议在配置前备份原始固件文件
-- 如果配置错误，可以重新配置并烧录
+- Configuration tool runs entirely in browser, no data is uploaded
+- You can save multiple configured firmware versions
+- Recommend backing up original firmware file before configuration
+- If configuration is wrong, you can reconfigure and flash again
 
-## 🆘 获取帮助
+## 🆘 Getting Help
 
-如果遇到问题：
-1. 查看 [故障排除](#故障排除) 部分
-2. 检查 [Issues](../../issues) 中的已知问题
-3. 创建新的 Issue 描述你的问题
+If you encounter problems:
+1. Check the [Troubleshooting](#troubleshooting) section
+2. Review known issues in [Issues](../../issues)
+3. Create a new Issue describing your problem

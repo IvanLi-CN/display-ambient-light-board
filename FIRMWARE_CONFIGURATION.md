@@ -1,157 +1,157 @@
-# 固件配置说明
+# Firmware Configuration Guide
 
-## 概述
+## Overview
 
-本项目现在支持用户友好的固件配置方式。你不再需要在编译时设置 WiFi 密码，而是可以使用我们提供的 Web 配置工具来个性化固件。
+This project now supports user-friendly firmware configuration. You no longer need to set WiFi passwords at compile time, but can use our provided web configuration tool to personalize the firmware.
 
-## 🎯 解决的问题
+## 🎯 Problems Solved
 
-- ✅ **用户友好**：无需编译，直接配置固件
-- ✅ **安全性**：WiFi 密码不会暴露在代码仓库中
-- ✅ **批量生产**：一个固件模板适用于所有用户
-- ✅ **灵活配置**：支持所有参数的个性化设置
+- ✅ **User-friendly**: No compilation needed, configure firmware directly
+- ✅ **Security**: WiFi passwords are not exposed in code repository
+- ✅ **Mass Production**: One firmware template works for all users
+- ✅ **Flexible Configuration**: Support for personalized settings of all parameters
 
-## 🚀 使用方法
+## 🚀 Usage
 
-### 1. 获取固件和配置工具
+### 1. Get Firmware and Configuration Tool
 
-从 [Releases](../../releases) 页面下载：
-- `display-ambient-light-board.bin` - 固件模板文件
-- `firmware-config-tool.html` - 配置工具
+Download from [Releases](../../releases) page:
+- `display-ambient-light-board.bin` - Firmware template file
+- `firmware-config-tool.html` - Configuration tool
 
-### 2. 配置固件
+### 2. Configure Firmware
 
-1. **打开配置工具**
-   - 在浏览器中打开 `firmware-config-tool.html`
-   - 支持所有现代浏览器（Chrome、Firefox、Safari、Edge）
+1. **Open Configuration Tool**
+   - Open `firmware-config-tool.html` in your browser
+   - Supports all modern browsers (Chrome, Firefox, Safari, Edge)
 
-2. **上传固件**
-   - 拖拽或选择 `display-ambient-light-board.bin` 文件
-   - 工具会自动解析当前配置
+2. **Upload Firmware**
+   - Drag and drop or select `display-ambient-light-board.bin` file
+   - Tool will automatically parse current configuration
 
-3. **修改配置**
-   - **WiFi 设置**：填写你的 WiFi SSID 和密码
-   - **网络设置**：UDP 端口、mDNS 主机名
-   - **LED 设置**：引脚、数量、颜色顺序
-   - **呼吸效果**：启用/禁用、基础颜色
+3. **Modify Configuration**
+   - **WiFi Settings**: Enter your WiFi SSID and password
+   - **Network Settings**: UDP port, mDNS hostname
+   - **LED Settings**: Pin, count, color order
+   - **Breathing Effect**: Enable/disable, base color
 
-4. **下载配置后的固件**
-   - 点击"更新配置"按钮
-   - 点击"下载配置后的固件"
-   - 获得个性化的 `display-ambient-light-board-configured.bin`
+4. **Download Configured Firmware**
+   - Click "Update Configuration" button
+   - Click "Download Configured Firmware"
+   - Get personalized `display-ambient-light-board-configured.bin`
 
-### 3. 烧录固件
+### 3. Flash Firmware
 
-使用 esptool.py 烧录配置后的固件：
+Use esptool.py to flash the configured firmware:
 
 ```bash
 esptool.py --chip esp32c3 --port /dev/ttyUSB0 --baud 460800 write_flash 0x0 display-ambient-light-board-configured.bin
 ```
 
-## 📋 可配置参数
+## 📋 Configurable Parameters
 
-| 参数 | 说明 | 默认值 | 范围/格式 |
-|------|------|--------|-----------|
-| **WiFi SSID** | WiFi 网络名称 | TEMPLATE_SSID | 1-63 字符 |
-| **WiFi 密码** | WiFi 密码 | TEMPLATE_PASS | 0-63 字符 |
-| **UDP 端口** | UDP 服务器端口 | 23042 | 1024-65535 |
-| **mDNS 主机名** | 设备网络名称 | board-rs | 1-31 字符 |
-| **LED 引脚** | GPIO 引脚号 | 4 | 0-21 |
-| **最大 LED 数** | 支持的 LED 数量 | 500 | 1-1000 |
-| **LED 颜色顺序** | 颜色通道顺序 | RGBW | RGB/GRB/RGBW 等 |
-| **呼吸效果** | 启用呼吸效果 | 启用 | 启用/禁用 |
-| **呼吸基础色** | RGBW 基础颜色 | (20,20,50,0) | 0-255 |
+| Parameter | Description | Default Value | Range/Format |
+|-----------|-------------|---------------|--------------|
+| **WiFi SSID** | WiFi network name | TEMPLATE_SSID | 1-63 characters |
+| **WiFi Password** | WiFi password | TEMPLATE_PASS | 0-63 characters |
+| **UDP Port** | UDP server port | 23042 | 1024-65535 |
+| **mDNS Hostname** | Device network name | board-rs | 1-31 characters |
+| **LED Pin** | GPIO pin number | 4 | 0-21 |
+| **Max LED Count** | Supported LED count | 500 | 1-1000 |
+| **LED Color Order** | Color channel order | RGBW | RGB/GRB/RGBW etc. |
+| **Breathing Effect** | Enable breathing effect | Enabled | Enabled/Disabled |
+| **Breathing Base Color** | RGBW base color | (20,20,50,0) | 0-255 |
 
-## 🔧 技术原理
+## 🔧 Technical Principles
 
-### 固件配置区域
+### Firmware Configuration Area
 
-固件中包含一个 256 字节的配置区域：
-- **位置**：固件中的固定位置，由标记 `FWCFG_START` 标识
-- **格式**：二进制结构体，包含魔数、版本、配置数据和校验和
-- **校验**：CRC32 校验确保数据完整性
+The firmware contains a 256-byte configuration area:
+- **Location**: Fixed position in firmware, identified by `FWCFG_START` marker
+- **Format**: Binary structure containing magic number, version, configuration data, and checksum
+- **Verification**: CRC32 checksum ensures data integrity
 
-### 配置工具工作原理
+### Configuration Tool Working Principle
 
-1. **解析固件**：查找配置标记，读取当前配置
-2. **验证数据**：检查魔数、版本和校验和
-3. **修改配置**：用户输入新的配置参数
-4. **写入固件**：将新配置写入固件的配置区域
-5. **计算校验**：重新计算并写入校验和
+1. **Parse Firmware**: Find configuration marker, read current configuration
+2. **Validate Data**: Check magic number, version, and checksum
+3. **Modify Configuration**: User inputs new configuration parameters
+4. **Write to Firmware**: Write new configuration to firmware's configuration area
+5. **Calculate Checksum**: Recalculate and write checksum
 
-### 运行时读取
+### Runtime Reading
 
-设备启动时：
-1. 查找固件中的配置区域
-2. 验证配置的有效性
-3. 如果配置有效，使用固件配置
-4. 如果配置无效，使用编译时默认配置
+When device starts up:
+1. Find configuration area in firmware
+2. Validate configuration validity
+3. If configuration is valid, use firmware configuration
+4. If configuration is invalid, use compile-time default configuration
 
-## 🛠️ 开发者信息
+## 🛠️ Developer Information
 
-### 构建包含配置的固件
+### Build Firmware with Configuration
 
-项目现在会自动构建包含配置模板的固件：
+The project now automatically builds firmware containing configuration templates:
 
 ```bash
-# 正常构建
+# Normal build
 idf.py build
 
-# 固件会包含默认的配置模板
-# 用户可以使用配置工具修改这些配置
+# Firmware will contain default configuration template
+# Users can modify these configurations using the configuration tool
 ```
 
-### 配置数据结构
+### Configuration Data Structure
 
 ```c
 typedef struct {
     uint32_t magic;                 // 0x12345678
-    uint32_t version;               // 配置版本
+    uint32_t version;               // Configuration version
     char wifi_ssid[64];             // WiFi SSID
-    char wifi_password[64];         // WiFi 密码
-    uint16_t udp_port;              // UDP 端口
-    char mdns_hostname[32];         // mDNS 主机名
-    uint8_t led_pin;                // LED 引脚
-    uint16_t max_leds;              // 最大 LED 数
-    char led_order[8];              // LED 颜色顺序
-    // ... 其他配置参数
-    uint8_t reserved[48];           // 预留空间
-    uint32_t checksum;              // CRC32 校验和
+    char wifi_password[64];         // WiFi password
+    uint16_t udp_port;              // UDP port
+    char mdns_hostname[32];         // mDNS hostname
+    uint8_t led_pin;                // LED pin
+    uint16_t max_leds;              // Maximum LED count
+    char led_order[8];              // LED color order
+    // ... other configuration parameters
+    uint8_t reserved[48];           // Reserved space
+    uint32_t checksum;              // CRC32 checksum
 } firmware_config_t;
 ```
 
-## 🔍 故障排除
+## 🔍 Troubleshooting
 
-### 配置工具无法识别固件
+### Configuration Tool Cannot Recognize Firmware
 
-- **原因**：固件可能不包含配置区域
-- **解决**：确保使用最新版本的固件
+- **Cause**: Firmware may not contain configuration area
+- **Solution**: Ensure you're using the latest version of firmware
 
-### 设备无法连接 WiFi
+### Device Cannot Connect to WiFi
 
-- **检查**：确认 WiFi SSID 和密码正确
-- **重新配置**：使用配置工具重新设置 WiFi 参数
+- **Check**: Confirm WiFi SSID and password are correct
+- **Reconfigure**: Use configuration tool to reset WiFi parameters
 
-### 配置丢失
+### Configuration Lost
 
-- **原因**：固件配置区域可能损坏
-- **解决**：重新使用配置工具配置固件并烧录
+- **Cause**: Firmware configuration area may be corrupted
+- **Solution**: Reconfigure firmware using configuration tool and flash again
 
-## 📝 更新日志
+## 📝 Changelog
 
 ### v1.0.0
-- ✅ 实现固件配置区域
-- ✅ 创建 Web 配置工具
-- ✅ 支持运行时配置读取
-- ✅ 更新 CI/CD 构建流程
+- ✅ Implemented firmware configuration area
+- ✅ Created web configuration tool
+- ✅ Support for runtime configuration reading
+- ✅ Updated CI/CD build process
 
-## 🤝 贡献
+## 🤝 Contributing
 
-如果你发现问题或有改进建议，欢迎：
-1. 提交 Issue
-2. 创建 Pull Request
-3. 参与讨论
+If you find issues or have improvement suggestions, welcome to:
+1. Submit Issues
+2. Create Pull Requests
+3. Participate in discussions
 
-## 📄 许可证
+## 📄 License
 
-本项目采用 GPLv3 许可证。详见 [LICENSE](LICENSE) 文件。
+This project is licensed under GPLv3. See [LICENSE](LICENSE) file for details.
