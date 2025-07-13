@@ -48,8 +48,8 @@ esp_err_t led_driver_init(gpio_num_t data_pin);
 
 /**
  * Update LED buffer with new data
- * @param offset LED offset (in LED units, not bytes)
- * @param data LED data (RGBW format)
+ * @param offset Byte offset in LED buffer (not LED units)
+ * @param data LED data in configured color order format
  * @param len Length of data in bytes
  * @return ESP_OK on success, error code otherwise
  */

@@ -336,12 +336,15 @@ bool udp_server_parse_led_packet(const uint8_t* data, size_t len,
       return false;
     }
 
-    // Validate offset and length don't exceed maximum LEDs
-    uint16_t led_count = *led_len / led_channels;
-    if (*offset + led_count > MAX_LED_COUNT) {
-        ESP_LOGW(TAG, "LED data exceeds maximum: offset=%d, count=%d, max=%d",
-                 *offset, led_count, MAX_LED_COUNT);
-        return false;
+    // Validate offset and length don't exceed buffer size
+    // offset is byte offset, led_len is data length in bytes
+    uint16_t max_buffer_size = MAX_LED_COUNT * led_channels;
+    if (*offset + *led_len > max_buffer_size) {
+      ESP_LOGW(TAG,
+               "LED data exceeds buffer: byte_offset=%d, data_len=%" PRIu32
+               ", max_buffer=%d",
+               *offset, (uint32_t)*led_len, max_buffer_size);
+      return false;
     }
 
     return true;
