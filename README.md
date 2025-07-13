@@ -163,7 +163,7 @@ The device implements the same UDP protocol as the original board-rs project:
 ### mDNS Service
 
 The device advertises itself as:
-- **Service**: `_atmosphere_light._udp.local.`
+- **Service**: `_ambient_light._udp.local.`
 - **Hostname**: `board-rs.local.`
 - **Port**: 23042
 

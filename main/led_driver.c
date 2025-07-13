@@ -401,15 +401,15 @@ esp_err_t led_driver_update_buffer(uint16_t offset, const uint8_t* data, size_t 
         return ESP_ERR_INVALID_ARG;
     }
 
-    // Calculate byte offset
-    int actual_channels = get_led_channels_count();
-    size_t byte_offset = offset * actual_channels;
+    // offset is already a byte offset according to protocol specification
+    size_t byte_offset = offset;
 
     // Check bounds
     if (byte_offset + len > g_buffer_size) {
-      ESP_LOGW(TAG,
-               "LED data exceeds buffer: offset=%d, len=%d, buffer_size=%d",
-               byte_offset, len, g_buffer_size);
+      ESP_LOGW(
+          TAG,
+          "LED data exceeds buffer: byte_offset=%d, len=%d, buffer_size=%d",
+          byte_offset, len, g_buffer_size);
       len = g_buffer_size - byte_offset;
     }
 
@@ -417,8 +417,8 @@ esp_err_t led_driver_update_buffer(uint16_t offset, const uint8_t* data, size_t 
       // In mixed mode, all LEDs including the first one should display ambient
       // data
       memcpy(g_led_buffer + byte_offset, data, len);
-      ESP_LOGD(TAG, "Updated LED buffer: offset=%d, len=%" PRIu32, offset,
-               (uint32_t)len);
+      ESP_LOGD(TAG, "Updated LED buffer: byte_offset=%d, len=%" PRIu32,
+               byte_offset, (uint32_t)len);
     }
 
     return ESP_OK;
