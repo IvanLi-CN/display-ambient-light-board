@@ -72,7 +72,7 @@ menu "Ambient Light Board Configuration"
 
     config MDNS_HOSTNAME
         string "mDNS Hostname"
-        default "board-rs"
+        default "ambient_light_board"
         help
             Hostname for mDNS service discovery (will be accessible as hostname.local).
 
