@@ -329,12 +329,9 @@ bool udp_server_parse_led_packet(const uint8_t* data, size_t len,
     // Get actual LED channels from configuration
     int led_channels = strlen(CONFIG_LED_COLOR_ORDER_STRING);
 
-    // Validate LED data length (must be multiple of LED channels)
-    if ((*led_len % led_channels) != 0) {
-      ESP_LOGW(TAG, "LED data length %" PRIu32 " is not multiple of %d",
-               (uint32_t)*led_len, led_channels);
-      return false;
-    }
+    // Note: We do NOT validate LED data length to be multiple of channels
+    // This allows for UDP packet fragmentation and partial updates
+    // The desktop application is responsible for sending correct data
 
     // Validate offset and length don't exceed buffer size
     // offset is byte offset, led_len is data length in bytes
